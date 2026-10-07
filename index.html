@@ -13,7 +13,7 @@
 
     <!-- HEADER -->
     <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-30">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-500/30">
                     <i class="fa-solid fa-book-bookmark text-xl text-white"></i>
@@ -22,17 +22,6 @@
                     <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">PageTurner</h1>
                     <p class="text-xs text-slate-400">Virtual Library & TBR Tracker (Powered by Open Library)</p>
                 </div>
-            </div>
-
-            <!-- Export / Import Actions -->
-            <div class="flex items-center gap-2">
-                <button onclick="exportData()" title="Backup Library to File" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-lg transition flex items-center gap-1.5 border border-slate-600">
-                    <i class="fa-solid fa-download"></i> Export JSON
-                </button>
-                <label title="Import Library Backup" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-lg transition flex items-center gap-1.5 border border-slate-600 cursor-pointer">
-                    <i class="fa-solid fa-upload"></i> Import
-                    <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importData(event)">
-                </label>
             </div>
         </div>
     </header>
@@ -77,4 +66,523 @@
                 </div>
                 
                 <!-- Loading State -->
-                <div id="search
+                <div id="searchSpinner" class="hidden py-8 text-center text-slate-400">
+                    <i class="fa-solid fa-circle-notch fa-spin text-2xl text-indigo-500"></i>
+                    <p class="mt-2 text-xs">Searching Open Library...</p>
+                </div>
+
+                <!-- Error Message -->
+                <div id="searchError" class="hidden p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs text-center"></div>
+
+                <!-- Grid of Results -->
+                <div id="searchResultsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+            </div>
+        </section>
+
+        <!-- SHELVES / TAB NAVIGATION & LIBRARY SEARCH -->
+        <section class="space-y-6">
+            
+            <!-- SHELF CONTROLS HEADER -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+                
+                <!-- Shelf Tabs -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+                    <button onclick="switchTab('tbr')" id="tab-tbr" class="px-4 py-2 rounded-xl font-medium text-xs sm:text-sm transition flex items-center gap-2 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 whitespace-nowrap">
+                        <i class="fa-solid fa-bookmark"></i> To Be Read
+                        <span id="badge-tbr" class="px-2 py-0.5 bg-indigo-800 text-indigo-100 rounded-full text-[10px]">0</span>
+                    </button>
+                    <button onclick="switchTab('reading')" id="tab-reading" class="px-4 py-2 rounded-xl font-medium text-xs sm:text-sm transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                        <i class="fa-solid fa-book-open"></i> Reading
+                        <span id="badge-reading" class="px-2 py-0.5 bg-slate-700 text-slate-300 rounded-full text-[10px]">0</span>
+                    </button>
+                    <button onclick="switchTab('completed')" id="tab-completed" class="px-4 py-2 rounded-xl font-medium text-xs sm:text-sm transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                        <i class="fa-solid fa-circle-check"></i> Completed
+                        <span id="badge-completed" class="px-2 py-0.5 bg-slate-700 text-slate-300 rounded-full text-[10px]">0</span>
+                    </button>
+                </div>
+
+                <!-- SEARCH MY LIBRARY & CONTROLS -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative flex-1 sm:w-64">
+                        <i class="fa-solid fa-filter absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="text" id="librarySearchInput" placeholder="Filter my list (Title, Author, Series)..." 
+                            class="w-full pl-8 pr-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+                            oninput="renderCurrentTab()">
+                    </div>
+
+                    <!-- Series Grouping Toggle -->
+                    <button id="groupBySeriesBtn" onclick="toggleSeriesGrouping()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-indigo-400"></i> Group Series
+                    </button>
+
+                    <!-- Sort Select -->
+                    <select id="sortSelect" onchange="renderCurrentTab()" class="px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg focus:outline-none">
+                        <option value="dateAdded">Sort: Date Added</option>
+                        <option value="title">Sort: Title</option>
+                        <option value="priority">Sort: Priority</option>
+                        <option value="pages">Sort: Page Count</option>
+                        <option value="series">Sort: Series</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- STATS BAR (Page Count Summary) -->
+            <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+                <div class="flex items-center gap-4">
+                    <span><i class="fa-solid fa-book-open text-indigo-400"></i> Total Books: <strong id="statTotalBooks" class="text-slate-200">0</strong></span>
+                    <span><i class="fa-solid fa-file-lines text-cyan-400"></i> Total Pages: <strong id="statTotalPages" class="text-slate-200">0</strong></span>
+                </div>
+                <div id="activeFilterBadge" class="hidden text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-2 py-0.5 rounded-md">
+                    Filtering Library
+                </div>
+            </div>
+
+            <!-- Shelf Grid -->
+            <div id="shelfGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+
+            <!-- Empty Shelf State -->
+            <div id="emptyShelfState" class="hidden py-16 text-center space-y-3 bg-slate-800/30 border border-dashed border-slate-700 rounded-2xl">
+                <i class="fa-solid fa-book-skull text-4xl text-slate-600"></i>
+                <p class="text-sm font-medium text-slate-400">No books found on this shelf.</p>
+                <p class="text-xs text-slate-500">Use the web search bar above to discover and add books to your list!</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- BOOK DETAIL & EDIT MODAL -->
+    <div id="bookModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex gap-4">
+                <img id="modalCover" src="" alt="Book Cover" class="w-24 h-36 object-cover rounded-lg shadow-md border border-slate-700 flex-shrink-0 bg-slate-900">
+                <div class="space-y-1">
+                    <h3 id="modalTitle" class="font-bold text-slate-100 text-base leading-snug"></h3>
+                    <p id="modalAuthors" class="text-xs text-indigo-400"></p>
+                    <p id="modalMeta" class="text-[11px] text-slate-400"></p>
+                    <div id="modalDescription" class="text-xs text-slate-300 pt-2 max-h-20 overflow-y-auto leading-relaxed"></div>
+                </div>
+            </div>
+
+            <hr class="border-slate-700">
+
+            <!-- Modal Inputs -->
+            <div class="space-y-4 text-xs">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Shelf Status</label>
+                        <select id="modalShelf" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200">
+                            <option value="tbr">To Be Read (TBR)</option>
+                            <option value="reading">Currently Reading</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Genre / Category</label>
+                        <input type="text" id="modalGenre" placeholder="e.g. Science Fiction, Fantasy" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200">
+                    </div>
+                </div>
+
+                <!-- Series Info -->
+                <div class="grid grid-cols-3 gap-3 p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl">
+                    <div class="col-span-2">
+                        <label class="block font-medium text-indigo-300 mb-1">Book Series Name</label>
+                        <input type="text" id="modalSeries" placeholder="e.g. Dune, The Expanse" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-indigo-300 mb-1">Series #</label>
+                        <input type="text" id="modalSeriesNum" placeholder="e.g. 1" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Priority</label>
+                        <select id="modalPriority" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200">
+                            <option value="low">Low Priority</option>
+                            <option value="medium">Medium Priority</option>
+                            <option value="high">High Priority</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Page Count</label>
+                        <input type="number" id="modalPageCount" placeholder="Pages" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Rating (1-5)</label>
+                        <select id="modalRating" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200">
+                            <option value="0">Not Rated</option>
+                            <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                            <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                            <option value="3">⭐⭐⭐ (3/5)</option>
+                            <option value="2">⭐⭐ (2/5)</option>
+                            <option value="1">⭐ (1/5)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Personal Notes & Thoughts</label>
+                    <textarea id="modalNotes" rows="3" placeholder="Add custom notes, recommended by, or takeaways..." class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500"></textarea>
+                </div>
+
+                <!-- External Search Links -->
+                <div class="pt-2 border-t border-slate-700/60 flex items-center justify-between">
+                    <span class="text-[11px] text-slate-400">Search Options:</span>
+                    <div class="flex items-center gap-2">
+                        <a id="modalWorldCatLink" href="#" target="_blank" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[11px] flex items-center gap-1">
+                            <i class="fa-solid fa-building-columns"></i> WorldCat
+                        </a>
+                        <a id="modalOpenLibLink" href="#" target="_blank" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[11px] flex items-center gap-1">
+                            <i class="fa-solid fa-book text-indigo-400"></i> Open Library
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Actions -->
+            <div class="flex items-center justify-between pt-2">
+                <button onclick="removeBookFromModal()" class="px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-medium rounded-lg text-xs transition border border-rose-500/30">
+                    <i class="fa-solid fa-trash"></i> Remove
+                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium rounded-lg text-xs transition">
+                        Cancel
+                    </button>
+                    <button onclick="saveModalChanges()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg text-xs transition shadow-md">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // App State
+        let myLibrary = [];
+        let activeTab = 'tbr';
+        let activeModalBookId = null;
+        let isGroupedBySeries = false;
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLibraryFromStorage();
+            renderCurrentTab();
+            updateTabBadges();
+        });
+
+        // Search Open Library API
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            const resultsSection = document.getElementById('searchResultsSection');
+            const spinner = document.getElementById('searchSpinner');
+            const errorContainer = document.getElementById('searchError');
+            const grid = document.getElementById('searchResultsGrid');
+
+            resultsSection.classList.remove('hidden');
+            spinner.classList.remove('hidden');
+            errorContainer.classList.add('hidden');
+            grid.innerHTML = '';
+
+            try {
+                const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=12`);
+                if (!response.ok) throw new Error('Open Library returned status ' + response.status);
+                
+                const data = await response.json();
+                spinner.classList.add('hidden');
+
+                if (!data.docs || data.docs.length === 0) {
+                    errorContainer.textContent = 'No books found. Try refining your title or author search.';
+                    errorContainer.classList.remove('hidden');
+                    return;
+                }
+
+                data.docs.forEach(doc => {
+                    const coverId = doc.cover_i;
+                    const coverUrl = coverId 
+                        ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` 
+                        : 'https://via.placeholder.com/128x192?text=No+Cover';
+                    
+                    const primaryGenre = doc.subject ? doc.subject[0] : (doc.first_sentence ? 'Fiction' : 'General');
+                    const seriesName = doc.series ? doc.series[0] : '';
+
+                    const book = {
+                        id: doc.key ? doc.key.replace('/works/', '') : 'ol_' + Math.random().toString(36).substr(2, 9),
+                        key: doc.key || '',
+                        title: doc.title || 'Unknown Title',
+                        authors: doc.author_name ? doc.author_name.join(', ') : 'Unknown Author',
+                        publishedDate: doc.first_publish_year || 'N/A',
+                        pageCount: doc.number_of_pages_median || null,
+                        genre: primaryGenre,
+                        series: seriesName,
+                        seriesNum: '',
+                        description: doc.first_sentence ? doc.first_sentence.join(' ') : 'Available on Open Library.',
+                        coverUrl: coverUrl,
+                        isbn: doc.isbn ? doc.isbn[0] : null
+                    };
+
+                    const card = createSearchCard(book);
+                    grid.appendChild(card);
+                });
+
+            } catch (err) {
+                spinner.classList.add('hidden');
+                errorContainer.textContent = 'Error connecting to Open Library: ' + err.message;
+                errorContainer.classList.remove('hidden');
+            }
+        }
+
+        function quickSearch(term) {
+            document.getElementById('searchInput').value = term;
+            performSearch();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchResultsSection').classList.add('hidden');
+            document.getElementById('searchInput').value = '';
+        }
+
+        // Render Search Card Component
+        function createSearchCard(book) {
+            const isSaved = myLibrary.some(b => b.id === book.id);
+            const card = document.createElement('div');
+            card.className = "bg-slate-900 border border-slate-700/80 rounded-xl p-3 flex flex-col justify-between space-y-2 hover:border-slate-600 transition shadow";
+
+            card.innerHTML = `
+                <div class="space-y-2">
+                    <img src="${book.coverUrl}" alt="${escapeHtml(book.title)}" class="w-full h-36 object-cover rounded-lg bg-slate-800" onerror="this.src='https://via.placeholder.com/128x192?text=No+Cover'">
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-100 line-clamp-1" title="${escapeHtml(book.title)}">${escapeHtml(book.title)}</h4>
+                        <p class="text-[11px] text-slate-400 line-clamp-1">${escapeHtml(book.authors)}</p>${book.series ? `<p class="text-[10px] text-indigo-400 line-clamp-1"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(book.series)}</p>` : ''}
+                    </div>
+                </div>
+                <button onclick='addBookToLibrary(${JSON.stringify(book).replace(/'/g, "&apos;")})' 
+                    class="w-full py-1.5 ${isSaved ? 'bg-slate-800 text-slate-400 border border-slate-700' : 'bg-indigo-600 hover:bg-indigo-500 text-white'} text-[11px] font-semibold rounded-lg transition flex items-center justify-center gap-1">
+                    <i class="fa-solid ${isSaved ? 'fa-check' : 'fa-plus'}"></i> ${isSaved ? 'In Library' : 'Add to TBR'}
+                </button>
+            `;
+            return card;
+        }
+
+        // Library Management
+        function addBookToLibrary(bookData) {
+            const existingIndex = myLibrary.findIndex(b => b.id === bookData.id);
+            if (existingIndex !== -1) {
+                openModal(bookData.id);
+                return;
+            }
+
+            const newBook = {
+                ...bookData,
+                shelf: 'tbr',
+                priority: 'medium',
+                rating: 0,
+                notes: '',
+                dateAdded: new Date().toISOString()
+            };
+
+            myLibrary.push(newBook);
+            saveLibraryToStorage();
+            renderCurrentTab();
+            updateTabBadges();
+            performSearch();
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            ['tbr', 'reading', 'completed'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) {
+                    if (t === tab) {
+                        btn.className = "px-4 py-2 rounded-xl font-medium text-xs sm:text-sm transition flex items-center gap-2 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 whitespace-nowrap";
+                    } else {
+                        btn.className = "px-4 py-2 rounded-xl font-medium text-xs sm:text-sm transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-slate-200 whitespace-nowrap";
+                    }
+                }
+            });
+            renderCurrentTab();
+        }
+
+        function toggleSeriesGrouping() {
+            isGroupedBySeries = !isGroupedBySeries;
+            const btn = document.getElementById('groupBySeriesBtn');
+            if (btn) {
+                if (isGroupedBySeries) {
+                    btn.className = "px-3 py-1.5 bg-indigo-600 text-white border border-indigo-500 rounded-lg text-xs font-medium transition flex items-center gap-1.5 shadow-md";
+                } else {
+                    btn.className = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5";
+                }
+            }
+            renderCurrentTab();
+        }
+
+        function renderCurrentTab() {
+            const grid = document.getElementById('shelfGrid');
+            const emptyState = document.getElementById('emptyShelfState');
+            const sortElem = document.getElementById('sortSelect');
+            const sortBy = sortElem ? sortElem.value : 'dateAdded';
+            const filterInput = document.getElementById('librarySearchInput');
+            const filterQuery = filterInput ? filterInput.value.trim().toLowerCase() : '';
+            const filterBadge = document.getElementById('activeFilterBadge');
+
+            if (!grid) return;
+
+            // Reset grid class layout
+            grid.className = "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4";
+            grid.innerHTML = '';
+            
+            // 1. Filter by active shelf tab
+            let filtered = myLibrary.filter(b => b.shelf === activeTab);
+
+            // 2. Filter by personal library search
+            if (filterQuery) {
+                if (filterBadge) filterBadge.classList.remove('hidden');
+                filtered = filtered.filter(b => 
+                    (b.title && b.title.toLowerCase().includes(filterQuery)) ||
+                    (b.authors && b.authors.toLowerCase().includes(filterQuery)) ||
+                    (b.series && b.series.toLowerCase().includes(filterQuery)) ||
+                    (b.genre && b.genre.toLowerCase().includes(filterQuery))
+                );
+            } else {
+                if (filterBadge) filterBadge.classList.add('hidden');
+            }
+
+            // Update stats bar
+            const totalBooksElem = document.getElementById('statTotalBooks');
+            const totalPagesElem = document.getElementById('statTotalPages');
+            if (totalBooksElem) totalBooksElem.textContent = filtered.length;
+            if (totalPagesElem) {
+                const totalPages = filtered.reduce((acc, b) => acc + (parseInt(b.pageCount) || 0), 0);
+                totalPagesElem.textContent = totalPages.toLocaleString();
+            }
+
+            if (filtered.length === 0) {
+                if (emptyState) emptyState.classList.remove('hidden');
+                grid.classList.add('hidden');
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('hidden');
+            grid.classList.remove('hidden');
+
+            // 3. Render Grouped by Series OR Standard Grid
+            if (isGroupedBySeries) {
+                renderSeriesGroupedGrid(filtered, grid);
+                return;
+            }
+
+            // Standard Sorting
+            filtered.sort((a, b) => {
+                if (sortBy === 'title') return a.title.localeCompare(b.title);
+                if (sortBy === 'pages') return (b.pageCount || 0) - (a.pageCount || 0);
+                if (sortBy === 'series') return (a.series || 'ZZZ').localeCompare(b.series || 'ZZZ');
+                if (sortBy === 'priority') {
+                    const pMap = { high: 3, medium: 2, low: 1 };
+                    return (pMap[b.priority] || 1) - (pMap[a.priority] || 1);
+                }
+                return new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0);
+            });
+
+            filtered.forEach(book => {
+                const card = createShelfCard(book);
+                grid.appendChild(card);
+            });
+        }
+
+        function renderSeriesGroupedGrid(books, container) {
+            container.className = "space-y-6 col-span-full";
+
+            const seriesMap = {};
+            const standalone = [];
+
+            books.forEach(b => {
+                if (b.series && b.series.trim()) {
+                    const sName = b.series.trim();
+                    if (!seriesMap[sName]) seriesMap[sName] = [];
+                    seriesMap[sName].push(b);
+                } else {
+                    standalone.push(b);
+                }
+            });
+
+            Object.keys(seriesMap).forEach(sName => {
+                const cluster = document.createElement('div');
+                cluster.className = "bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 space-y-3";
+                
+                seriesMap[sName].sort((a, b) => (parseFloat(a.seriesNum) || 99) - (parseFloat(b.seriesNum) || 99));
+
+                cluster.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                        <h3 class="text-xs font-bold text-indigo-300 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group"></i> ${escapeHtml(sName)} Series 
+                            <span class="text-[10px] bg-indigo-900/80 text-indigo-200 px-2 py-0.5 rounded-full">${seriesMap[sName].length} Books</span>
+                        </h3>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                `;
+
+                const subGrid = cluster.querySelector('.grid');
+                seriesMap[sName].forEach(book => {
+                    subGrid.appendChild(createShelfCard(book));
+                });
+
+                container.appendChild(cluster);
+            });
+
+            if (standalone.length > 0) {
+                const cluster = document.createElement('div');
+                cluster.className = "bg-slate-800/20 border border-dashed border-slate-700/60 rounded-2xl p-4 space-y-3";
+                cluster.innerHTML = `
+                    <h3 class="text-xs font-bold text-slate-400 flex items-center gap-2 border-b border-slate-700/60 pb-2">
+                        <i class="fa-solid fa-book"></i> Standalone Titles & Unassigned
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                `;
+                const subGrid = cluster.querySelector('.grid');
+                standalone.forEach(book => {
+                    subGrid.appendChild(createShelfCard(book));
+                });
+                container.appendChild(cluster);
+            }
+        }
+
+        function createShelfCard(book) {
+            const card = document.createElement('div');
+            card.className = "bg-slate-800 border border-slate-700/80 rounded-xl p-3 flex flex-col justify-between space-y-3 hover:border-slate-600 transition shadow-lg cursor-pointer group";
+            card.onclick = () => openModal(book.id);
+
+            const priorityColors = {
+                high: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+                medium: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                low: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+            };
+
+            const pColor = priorityColors[book.priority] || priorityColors.medium;
+
+            card.innerHTML = `
+                <div class="space-y-2">
+                    <div class="relative">
+                        <img src="${book.coverUrl}" alt="${escapeHtml(book.title)}" class="w-full h-40 object-cover rounded-lg bg-slate-900" onerror="this.src='https://via.placeholder.com/128x192?text=No+Cover'">
+                        <span class="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-bold rounded-md border ${pColor} backdrop-blur">
+                            ${(book.priority || 'medium').toUpperCase()}
+                        </span>
+                        ${book.seriesNum ? `<span class="absolute bottom-2 left-2 px-1.5 py-0.5 text-[10px] font-bold bg-slate-900/90 text-indigo-300 rounded border border-indigo-800">#${escapeHtml(book.seriesNum)}</span>` : ''}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-100 line-clamp-1 group-hover:text-indigo-400 transition" title="${escapeHtml(book.title)}">${escapeHtml(book.title)}</h4>
+                        <p class="text-[11px] text-slate-400 line-clamp-1">${escapeHtml(book.authors)}</p>${book.series ? `<p class="text-[10px] text-indigo-400 line-clamp-1 font-medium"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(book.series)}</p>` : ''}
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-slate-700/60 space-y-1">
+                    <div class="flex items-center justify-between text-[10px] text-slate-400">
+                        <span><i class="fa-solid fa-file-lines text-slate-500"></i> ${book.pageCount ? book.pageCount + ' pgs' : 'N/A'}</span>
+                        <span class="truncate max-w-[80px] text-slate-400">${book.genre || ''}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400">
+                        <span>${book.rating >

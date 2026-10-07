@@ -92,6 +92,101 @@
             </div>
         </section>
 
+        <!-- MANUAL BOOK ENTRY SECTION (NEW FEATURE) -->
+        <section class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 shadow-lg backdrop-blur">
+            <div class="flex items-center justify-between cursor-pointer" onclick="toggleManualForm()">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-200">Add Book Manually</h3>
+                        <p class="text-[11px] text-slate-400">Can't find a book online? Add it directly to your library here.</p>
+                    </div>
+                </div>
+                <button id="toggleManualFormBtn" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-lg transition flex items-center gap-1">
+                    <i class="fa-solid fa-plus" id="manualFormIcon"></i> <span id="manualFormBtnText">Add Book</span>
+                </button>
+            </div>
+
+            <!-- Expandable Entry Form -->
+            <form id="manualBookForm" class="hidden mt-5 pt-5 border-t border-slate-700/60 space-y-4" onsubmit="handleManualBookSubmit(event)">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Book Title <span class="text-rose-400">*</span></label>
+                        <input type="text" id="manualTitle" placeholder="e.g. Rare Edition Book" required class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Author Name <span class="text-rose-400">*</span></label>
+                        <input type="text" id="manualAuthor" placeholder="e.g. Jane Doe" required class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Page Count</label>
+                        <input type="number" id="manualPages" placeholder="e.g. 350" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Genre / Category</label>
+                        <input type="text" id="manualGenre" placeholder="e.g. History, Biography" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-indigo-300 mb-1">Series Name (Optional)</label>
+                        <input type="text" id="manualSeries" placeholder="e.g. Chronicles of Earth" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-indigo-300 mb-1">Series #</label>
+                        <input type="text" id="manualSeriesNum" placeholder="e.g. 1" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Shelf Status</label>
+                        <select id="manualShelf" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="tbr">To Be Read (TBR)</option>
+                            <option value="reading">Currently Reading</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Priority</label>
+                        <select id="manualPriority" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="low">Low Priority</option>
+                            <option value="medium" selected>Medium Priority</option>
+                            <option value="high">High Priority</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Rating (1-5)</label>
+                        <select id="manualRating" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="0">Not Rated</option>
+                            <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                            <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                            <option value="3">⭐⭐⭐ (3/5)</option>
+                            <option value="2">⭐⭐ (2/5)</option>
+                            <option value="1">⭐ (1/5)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Cover Image URL (Optional)</label>
+                        <input type="url" id="manualCoverUrl" placeholder="https://..." class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Personal Notes</label>
+                        <input type="text" id="manualNotes" placeholder="Recommended by friend, personal copy, etc." class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="toggleManualForm()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Add to My Library
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <!-- SHELVES / TAB NAVIGATION & LIBRARY SEARCH -->
         <section class="space-y-6">
             
@@ -344,6 +439,74 @@
             renderCurrentTab();
             updateTabBadges();
         });
+
+        // Toggle Manual Book Entry Form
+        function toggleManualForm() {
+            const form = document.getElementById('manualBookForm');
+            const icon = document.getElementById('manualFormIcon');
+            const text = document.getElementById('manualFormBtnText');
+
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                icon.className = "fa-solid fa-minus";
+                text.textContent = "Close Form";
+            } else {
+                form.classList.add('hidden');
+                icon.className = "fa-solid fa-plus";
+                text.textContent = "Add Book";
+            }
+        }
+
+        // Handle Manual Form Submission
+        function handleManualBookSubmit(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('manualTitle').value.trim();
+            const author = document.getElementById('manualAuthor').value.trim();
+            if (!title || !author) return;
+
+            const pageCount = parseInt(document.getElementById('manualPages').value) || null;
+            const genre = document.getElementById('manualGenre').value.trim();
+            const series = document.getElementById('manualSeries').value.trim();
+            const seriesNum = document.getElementById('manualSeriesNum').value.trim();
+            const shelf = document.getElementById('manualShelf').value;
+            const priority = document.getElementById('manualPriority').value;
+            const rating = parseInt(document.getElementById('manualRating').value) || 0;
+            const customCoverUrl = document.getElementById('manualCoverUrl').value.trim();
+            const notes = document.getElementById('manualNotes').value.trim();
+
+            const fallbackCover = 'https://via.placeholder.com/128x192?text=' + encodeURIComponent(title);
+
+            const newBook = {
+                id: 'man_' + Math.random().toString(36).substr(2, 9),
+                title: title,
+                authors: author,
+                pageCount: pageCount,
+                genre: genre,
+                series: series,
+                seriesNum: seriesNum,
+                shelf: shelf,
+                priority: priority,
+                rating: rating,
+                notes: notes,
+                publishedDate: 'N/A',
+                description: 'Manually created book entry.',
+                coverUrl: customCoverUrl || fallbackCover,
+                dateAdded: new Date().toISOString()
+            };
+
+            myLibrary.push(newBook);
+            saveLibraryToStorage();
+            
+            // Switch tab to where the book was placed & render
+            switchTab(shelf);
+
+            // Reset form
+            document.getElementById('manualBookForm').reset();
+            toggleManualForm();
+
+            alert(`"${title}" added successfully to your library!`);
+        }
 
         // Search Open Library API
         async function performSearch() {
@@ -856,7 +1019,6 @@
                     updatedCount++;
                 }
 
-                // Small delay to prevent rate-limiting
                 await new Promise(r => setTimeout(r, 250));
             }
 

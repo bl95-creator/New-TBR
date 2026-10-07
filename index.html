@@ -175,8 +175,8 @@
 
             <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 text-xs space-y-2">
                 <p class="font-semibold text-slate-300">Expected CSV Column Order:</p>
-                <p class="text-indigo-300 font-mono text-[11px] bg-slate-950 p-2 rounded border border-slate-800">
-                    Author, Title, Page Count, Series or Standalone, Series Book #, Genre
+                <p class="text-indigo-300 font-mono text-[11px] bg-slate-950 p-2 rounded border border-slate-800 overflow-x-auto whitespace-nowrap">
+                    Author, Title, Page Count, Standalone or Series, Series Book #, Series Name, Genre
                 </p>
                 <div class="flex items-center justify-between pt-1">
                     <span class="text-slate-400 text-[11px]">Need a starting file?</span>
@@ -727,10 +727,10 @@
         }
 
         function downloadCSVTemplate() {
-            const sampleData = "Author,Title,Page Count,Series or Standalone,Series Book #,Genre\n" +
-                               "Frank Herbert,Dune,688,Dune,1,Science Fiction\n" +
-                               "Andy Weir,Project Hail Mary,496,Standalone,,Science Fiction\n" +
-                               "James Clear,Atomic Habits,320,Standalone,,Self-Help";
+            const sampleData = "Author,Title,Page Count,Standalone or Series,Series Book #,Series Name,Genre\n" +
+                               "Frank Herbert,Dune,688,Series,1,Dune,Science Fiction\n" +
+                               "Andy Weir,Project Hail Mary,496,Standalone,N/A,,Science Fiction\n" +
+                               "James Clear,Atomic Habits,320,Standalone,N/A,,Self-Help";
             
             const blob = new Blob([sampleData], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -747,21 +747,22 @@
                 return;
             }
 
-            let csv = "Author,Title,Page Count,Series or Standalone,Series Book #,Genre,Shelf Status,Priority,Rating,Notes\n";
+            let csv = "Author,Title,Page Count,Standalone or Series,Series Book #,Series Name,Genre,Shelf Status,Priority,Rating,Notes\n";
 
             myLibrary.forEach(b => {
                 const author = `"${(b.authors || '').replace(/"/g, '""')}"`;
                 const title = `"${(b.title || '').replace(/"/g, '""')}"`;
                 const pages = b.pageCount || '';
-                const series = `"${(b.series || 'Standalone').replace(/"/g, '""')}"`;
-                const seriesNum = `"${(b.seriesNum || '').replace(/"/g, '""')}"`;
+                const standaloneOrSeries = b.series ? 'Series' : 'Standalone';
+                const seriesNum = `"${(b.seriesNum || 'N/A').replace(/"/g, '""')}"`;
+                const seriesName = `"${(b.series || '').replace(/"/g, '""')}"`;
                 const genre = `"${(b.genre || '').replace(/"/g, '""')}"`;
                 const shelf = b.shelf || 'tbr';
                 const priority = b.priority || 'medium';
                 const rating = b.rating || 0;
                 const notes = `"${(b.notes || '').replace(/"/g, '""')}"`;
 
-                csv += `${author},${title},${pages},${series},${seriesNum},${genre},${shelf},${priority},${rating},${notes}\n`;
+                csv += `${author},${title},${pages},${standaloneOrSeries},${seriesNum},${seriesName},${genre},${shelf},${priority},${rating},${notes}\n`;
             });
 
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -808,7 +809,8 @@
                         return;
                     }
 
-                    // Assume Header: Author, Title, Page Count, Series or Standalone, Series Book #, Genre
+                    // Expected Header Order:
+                    // 0: Author, 1: Title, 2: Page Count, 3: Standalone or Series, 4: Series Book #, 5: Series Name, 6: Genre
                     let importedCount = 0;
                     for (let i = 1; i < rows.length; i++) {
                         const row = rows[i];
@@ -817,17 +819,26 @@
                         const author = row[0] ? row[0].trim() : 'Unknown Author';
                         const title = row[1] ? row[1].trim() : 'Untitled';
                         const pageCount = parseInt(row[2]) || null;
-                        let series = row[3] ? row[3].trim() : '';
-                        if (series.toLowerCase() === 'standalone') series = '';
-                        const seriesNum = row[4] ? row[4].trim() : '';
-                        const genre = row[5] ? row[5].trim() : '';
+                        
+                        const standaloneOrSeries = row[3] ? row[3].trim().toLowerCase() : '';
+                        
+                        let seriesNum = row[4] ? row[4].trim() : '';
+                        if (seriesNum.toUpperCase() === 'N/A') seriesNum = '';
+
+                        let seriesName = row[5] ? row[5].trim() : '';
+                        if (standaloneOrSeries === 'standalone') {
+                            seriesName = '';
+                            seriesNum = '';
+                        }
+
+                        const genre = row[6] ? row[6].trim() : '';
 
                         const newBook = {
                             id: 'imp_' + Math.random().toString(36).substr(2, 9),
                             title: title,
                             authors: author,
                             pageCount: pageCount,
-                            series: series,
+                            series: seriesName,
                             seriesNum: seriesNum,
                             genre: genre,
                             shelf: 'tbr',
